@@ -1,6 +1,6 @@
 #!./env/bin/python3
+from datetime import datetime, timezone, timedelta
 from signal import signal, SIGTSTP
-from datetime import datetime
 from json import load, dump
 from subprocess import run
 from time import sleep
@@ -21,6 +21,11 @@ def immediate_update(sig, frame):
 # register the signal handler
 signal(SIGTSTP, immediate_update)
 
+
+def timestamp() -> str:
+    ts = datetime.now()
+    pst = timezone(timedelta(hours=-8))
+    return ts.astimezone(pst).ctime()
 
 # read in hosts.json and return dict
 def read_hosts() -> dict:
@@ -66,7 +71,7 @@ def check_new() -> tuple[dict, dict]:
 # ping host and return data
 def ping_host(ip:str) -> tuple[int, str, str]:
     # get timestamp
-    ts = datetime.now().ctime()
+    ts = timestamp()
 
     # ping host
     result = run(['ping', '-q', '-c', '5', ip], capture_output=True, text=True)
@@ -145,7 +150,7 @@ def full_update():
 
 # log actions done by the script
 def log(msg:str) -> None:
-    print(f'\t[{datetime.now().ctime()}] - {msg}')
+    print(f'\t[{timestamp()}] - {msg}')
 
 
 
