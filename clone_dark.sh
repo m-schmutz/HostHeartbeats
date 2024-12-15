@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # clone the darkhttpd repo
-git clone git@github.com:emikulic/darkhttpd.git temp
+git clone https://github.com/emikulic/darkhttpd.git temp
 
 # go into temp directory and compile
 cd temp && make
