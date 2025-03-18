@@ -5,12 +5,10 @@ from json import load, dump
 from subprocess import run
 from time import sleep
 
-# path to json served on web
-WEB_JSON = 'web/status.json'
-
 # data paths
 HOSTS = 'data/hosts.json'
 LAST = 'data/last.json'
+WEB_DATA = 'web/status.json'
 
 # signal handler for immediate update of data
 def immediate_update(sig, frame):
@@ -18,14 +16,17 @@ def immediate_update(sig, frame):
     full_update()
     log('Prompted Check-in complete')
 
+
 # register the signal handler
 signal(SIGTSTP, immediate_update)
 
 
+# get current timestamp and convert to ctime format
 def timestamp() -> str:
     ts = datetime.now()
     pst = timezone(timedelta(hours=-8))
     return ts.astimezone(pst).ctime()
+
 
 # read in hosts.json and return dict
 def read_hosts() -> dict:
@@ -48,8 +49,8 @@ def write_last(new:dict):
 
 
 # write dict to status.json
-def write_web(new:dict):
-    with open(WEB_JSON, 'w') as f:
+def write_status(new:dict):
+    with open(WEB_DATA, 'w') as f:
         dump(new, f)
 
 
@@ -73,8 +74,8 @@ def ping_host(ip:str) -> tuple[int, str, str]:
     # get timestamp
     ts = timestamp()
 
-    # ping host
-    result = run(['ping', '-q', '-c', '5', ip], capture_output=True, text=True)
+    # ping host (send 5 pings or stop after 10 seconds)
+    result = run(['ping', '-q', '-c', '5', '-w', '10', ip], capture_output=True, text=True)
 
     # get the 4th line from output containing packet data
     data = result.stdout.splitlines()[3]
@@ -83,7 +84,7 @@ def ping_host(ip:str) -> tuple[int, str, str]:
     p, t = data.split(',')[-2:]
 
     # get just the percentage
-    p = p[1:3]
+    p = p[1:p.index('%') + 1]
 
     # convert time from ms to s
     t = f'{int(t[6:-2]) / 1000} seconds'
@@ -119,18 +120,18 @@ def update_last(cdata:dict, last:dict) -> dict:
 # update the web json
 def update_status(cdata:dict, last:dict):
     # start with empty dictionary
-    status = dict()
+    status = list()
 
     # loop through all hosts
     for hostname, data in cdata.items():
         # extract elements from data
-        reachable, percent, elapsed, _ = data
+        reachable, percent, elapsed, ts = data
 
         # define data for this host
-        status[hostname] = {"Reachable": reachable, "Packet Loss": percent, "Time Elapsed": elapsed, "Last Check-In": last[hostname]}
+        status.append({"hostname": hostname, "reachable": reachable, "lastCheckin": ts, "packetLoss": percent, "timeElapsed": elapsed, "lastReachable": last[hostname]})
 
     # update the web json
-    write_web(status)
+    write_status(status)
 
 
 # run checkin and update of web json
@@ -153,8 +154,8 @@ def log(msg:str) -> None:
     print(f'\t[{timestamp()}] - {msg}')
 
 
-
-if __name__ == '__main__':
+# main function
+if __name__ == '__main__':  
     # loop until interrupted
     try:
         while True:

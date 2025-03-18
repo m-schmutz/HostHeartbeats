@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #ffffff;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #000000;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Server Status</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Hostname</th>
+                <th>Reachable</th>
+                <th>Last Checkin</th>
+                <th>Packet Loss</th>
+                <th>Time Elapsed</th>
+                <th>Last Reachable</th>
+            </tr>
+        </thead>
+        <tbody id="server-status">
+            <!-- Dynamic rows will be injected here -->
+        </tbody>
+    </table>
+
+    <script>
+        // Fetch server status from JSON file
+        async function loadServerStatus() {
+            try {
+                const response = await fetch('status.json'); 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                // get JSON data from fetch and element where table entries will be inserted
+                const servers = await response.json();
+                const tableBody = document.getElementById('server-status');
+
+                // Clear existing rows
+                tableBody.innerHTML = '';
+
+                // Populate table
+                servers.forEach(server => {
+                    const row = document.createElement('tr');
+
+                    // Apply a class based on the "Reachable" status
+                    if (server.reachable) {
+                        row.style.backgroundColor = "#00FF00";
+                    } else {
+                        row.style.backgroundColor = "#FF0000";
+                    }
+
+                    // build table row
+                    row.innerHTML = `
+                    <td>${server.hostname}</td>
+                    <td>${server.reachable ? "Yes" : "No"}</td>
+                    <td>${server.lastCheckin}</td>
+                    <td>${server.packetLoss}</td>
+                    <td>${server.timeElapsed}</td>
+                    <td>${server.lastReachable}</td>
+                `;
+                    // append row to the table
+                    tableBody.appendChild(row);
+                });
+
+            } catch (error) {
+                console.error('Error loading server status:', error);
+            }
+        }
+
+        // Load data on page refresh
+        loadServerStatus();
+        
+    </script>
+</body>
+
+</html>
